@@ -50,6 +50,19 @@ def handle_rating(message):
     res = '\n'.join(res)
     res = f'|USER_NAME    |COUNT_PRIZE|\n{"_"*26}\n' + res
     bot.send_message(message.chat.id, res)
+
+@bot.message_handler(commands=['my_score'])
+def get_my_score():
+    m = DatabaseManager(DATABASE)
+    info = m.get_winners_img("user_id")
+    prizes = [x[0] for x in info]
+    image_paths = os.listdir('img')
+    image_paths = [f'img/{x}' if x in prizes else f'hidden_img/{x}' for x in image_paths]
+    collage = create_collage(image_paths)
+
+    cv2.imshow('Collage', collage)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
         
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
@@ -58,7 +71,7 @@ def callback_query(call):
     user_id = call.message.chat.id
 
     if manager.get_winners_count(prize_id) < 3:
-        res = manager.add_winner()
+        res = manager.add_winner(user_id,prize_id)
         if res:
             img = manager.get_prize_img(prize_id)
             with open(f'img/{img}', 'rb') as photo:
