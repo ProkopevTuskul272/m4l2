@@ -5,6 +5,7 @@ import schedule
 import threading
 import time
 from config import *
+import sqlite3
 
 bot = TeleBot(API_TOKEN)
 
@@ -51,19 +52,26 @@ def handle_rating(message):
     res = f'|USER_NAME    |COUNT_PRIZE|\n{"_"*26}\n' + res
     bot.send_message(message.chat.id, res)
 
+@bot.message_handler(commands=['clear'])
+def clear(message):
+    conn = sqlite3.connect('data.db')
+    with conn:
+        conn.execute('UPDATE prizes SET used = 0')
+        conn.commit()
+
+    bot.send_message(message, 'Аннулирование столбца used успешна проведена!')
+
 @bot.message_handler(commands=['my_score'])
-def get_my_score():
+def get_my_score(message):
     m = DatabaseManager(DATABASE)
     info = m.get_winners_img("user_id")
     prizes = [x[0] for x in info]
     image_paths = os.listdir('img')
     image_paths = [f'img/{x}' if x in prizes else f'hidden_img/{x}' for x in image_paths]
-    collage = create_collage(image_paths)
+    collage = manager.create_collage(image_paths)
 
-    cv2.imshow('Collage', collage)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-        
+    bot.send_photo(collage)
+
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
 
